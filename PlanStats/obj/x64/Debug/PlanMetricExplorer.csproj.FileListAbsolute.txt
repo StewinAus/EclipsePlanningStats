@@ -1,0 +1,11 @@
+C:\Users\Admin\Documents\PlanStats\bin\debug\PlanMetricExplorer.dll
+C:\Users\Admin\Documents\PlanStats\bin\debug\PlanMetricExplorer.pdb
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.csproj.AssemblyReference.cache
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanDVHDetails.g.cs
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer_MarkupCompile.cache
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer_MarkupCompile.lref
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanDVHDetails.baml
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.g.resources
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.csproj.CoreCompileInputs.cache
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.dll
+C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.pdb
