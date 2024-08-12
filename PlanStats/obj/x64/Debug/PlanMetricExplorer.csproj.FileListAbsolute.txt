@@ -9,3 +9,14 @@ C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.g.resources
 C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.csproj.CoreCompileInputs.cache
 C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.dll
 C:\Users\Admin\Documents\PlanStats\obj\x64\Debug\PlanMetricExplorer.pdb
+C:\PlanStats\bin\debug\PlanMetricExplorer.dll
+C:\PlanStats\bin\debug\PlanMetricExplorer.pdb
+C:\PlanStats\obj\x64\Debug\PlanMetricExplorer.csproj.AssemblyReference.cache
+C:\PlanStats\obj\x64\Debug\PlanDVHDetails.g.cs
+C:\PlanStats\obj\x64\Debug\PlanMetricExplorer_MarkupCompile.cache
+C:\PlanStats\obj\x64\Debug\PlanMetricExplorer_MarkupCompile.lref
+C:\PlanStats\obj\x64\Debug\PlanDVHDetails.baml
+C:\PlanStats\obj\x64\Debug\PlanMetricExplorer.g.resources
+C:\PlanStats\obj\x64\Debug\PlanMetricExplorer.csproj.CoreCompileInputs.cache
+C:\PlanStats\obj\x64\Debug\PlanMetricExplorer.dll
+C:\PlanStats\obj\x64\Debug\PlanMetricExplorer.pdb

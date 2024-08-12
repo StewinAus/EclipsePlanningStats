@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Runtime.Remoting.Contexts;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -26,17 +28,20 @@ namespace PlanMetricExplorer
         public PlanDVHDetails()
         {
             InitializeComponent();
-        }
+        } 
         public PlanSetup MyPlan { get; set; }
         public PlanningItem MyPI { get; set; }
         public Window zwindow;
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
+
             PlanSetup plan = MyPlan;
             var myPi = MyPI;
             myPi = plan as PlanningItem;
-
+            var referenceDose = plan.TotalDose;
+            var structDetails = new List<structList>();
+            var bodyDetails = new List<structList>();
             if (plan == null)
             {
                 MessageBox.Show("No valid plan selected");
@@ -48,46 +53,103 @@ namespace PlanMetricExplorer
                 return;
             }
             Structure target = plan.StructureSet.Structures.FirstOrDefault(st => st.Id.Contains("PTV"));
-            
+
             if (target == null)
             {
                 MessageBox.Show("Plan contains no target volume");
                 return;
             }
+            //to work out the volume of 100% ref dose
+            foreach (Structure s in plan.StructureSet.Structures.Where(st => st.DicomType.Contains("EXTERNAL")))
+            {
+                bodyDetails.Add(new structList()
+                {
+                    bodyId = s,
+                    vol100 = Calculated100(s, myPi, referenceDose),
+                    vol50 = Calculated50(s, myPi, referenceDose)
+                });
+            }
 
-            var structDetails = new List<structList>();
+            //PTV Volume list
+            var tvDetails = new List<structList>();
+            foreach (Structure s in plan.StructureSet.Structures.Where(st => st.DicomType.Contains("PTV")))
+            {
+                if (!s.IsEmpty)//check for empty structures
+                {
+                    string str = s.Id.ToString();
+                    string pattern = @"\d+(\.\d+)?";
+                    MatchCollection matches = Regex.Matches(str, pattern);
+                    foreach (Match match in matches)
+                    {
+                        var d100 = double.Parse(match.Value) * 100;
+                        var d50 = double.Parse(match.Value) * 50;
+                        tvDetails.Add(new structList()
+                        {
+                            structureId = s.Id,
+                            tvVol = s.Volume,
+                            tvDose = double.Parse(match.Value),
+                            tvVol100 = CalculatedPTV100Vol( bodyDetails[0].bodyId, myPi, new DoseValue(value: d100, unit: DoseValue.DoseUnit.cGy)),
+                            tvVol50 = CalculatedPTV100Vol(bodyDetails[0].bodyId, myPi, new DoseValue(value: d50, unit: DoseValue.DoseUnit.cGy)),
+                            HI = CalculateHI(s, myPi).ToString(),
+                            gEUD = CalculateGEUD(s, myPi).ToString(),
+                            ptvD95 = Calculated95(s, myPi).ToString() + "Gy",
+                        });
+                    }
+                }
+            }
+
+          //add OAR/Body to List
             foreach (Structure s in plan.StructureSet.Structures.Where
-                (st => st.DicomType.Contains("TV") ||
-                st.DicomType.Contains("ORGAN") ||
+                (st => st.DicomType.Contains("ORGAN") ||
+                st.DicomType.Contains("EXTERNAL") ||
                 st.DicomType.Contains("AVOIDANCE")))
             {
                 if (!s.IsEmpty)//check for empty structures
                 {
-
-
                     structDetails.Add(new structList()
                     {
                         structureId = s.Id,
                         structureType = s.DicomType,
                         structureVolume = (s.Volume.ToString("F1") + "cc"),
-                        HI = CalculateHI(s, myPi).ToString(),
-                        gEUD = CalculateGEUD(s, myPi).ToString(),
-                        ptvD98 = Calculated98(s, myPi).ToString() + "Gy",
+                        structDMax = CalculateddMax(s, myPi),
+                        structDMean = CalculatedMeanDose(s, myPi),
                     });
                 }
             }
+
+            //Add PTV vols to datagrid
+            for (int i = 0; i < tvDetails.Count; i++)
+            {
+                double CI = tvDetails[i].tvVol100 / tvDetails[i].tvVol;
+                double eqSphereRadiusD100 = Math.Pow((tvDetails[i].tvVol100 * 3) / (4 * Math.PI), (1.0 / 3.0));
+                double eqSphereRadiusD50 = Math.Pow((tvDetails[i].tvVol50 * 3) / (4 * Math.PI), (1.0 / 3.0));
+                this.dataGrid2.Items.Add(new structList()
+                {
+                    tvStructureId = tvDetails[i].structureId.ToString(),
+                    calcCI = Math.Round(CI, 2).ToString(),
+                    calcGI = Math.Round((eqSphereRadiusD50 - eqSphereRadiusD100), 2).ToString(),
+                    calcDose = tvDetails[i].tvDose.ToString(),
+                    calcVol = tvDetails[i].tvVol100.ToString(),
+                    calcVol50 = tvDetails[i].tvVol50.ToString(),
+                    HI = tvDetails[i].HI.ToString(),
+                    gEUD = tvDetails[i].gEUD.ToString(),
+                    ptvD95 = tvDetails[i].ptvD95.ToString(),
+                });
+            }
+            //Add OR to datagrid
             for (int i = 0; i < structDetails.Count; i++)
             {
-                this.dataGrid.Items.Add(new structList() { 
-                    structureId = structDetails[i].structureId.ToString(), 
-                    structureType = structDetails[i].structureType.ToString(), 
-                    structureVolume = structDetails[i].structureVolume.ToString(), 
-                    HI = structDetails[i].HI.ToString(), 
-                    gEUD = structDetails[i].gEUD.ToString(), 
-                    ptvD98 = structDetails[i].ptvD98.ToString() });
+                this.dataGrid.Items.Add(new structList()
+                {
+                    structureId = structDetails[i].structureId.ToString(),
+                    structureType = structDetails[i].structureType.ToString(),
+                    structureVolume = structDetails[i].structureVolume.ToString(),
+                    structureDMax = structDetails[i].structDMax.ToString(),
+                    structureMean = structDetails[i].structDMean.ToString(),
+                });
             }
         }
-       
+
         public class structList
         {
             public string structureId { get; set; }
@@ -95,17 +157,64 @@ namespace PlanMetricExplorer
             public string structureVolume { get; set; }
             public string HI { get; set; }
             public string gEUD { get; set; }
-            public string ptvD98 { get; set; }
+            public string ptvD95 { get; set; }
+            public double vol100 { get; set; }
+            public double vol50 { get; set; }
+            public double tvVol { get; set; }  
+            public string calcCI { get; set; }
+            public string calcGI { get; set; }
+            public string calcDose { get; set; }
+            public string calcVol { get; set; }
+            public string calcVol50 { get; set; }
+            public string tvStructureId { get; set;}
+            public double tvDose { get; set;}
+            public double tvVol100 { get; set;}
+            public double tvVol50 { get; set; }
+            public Structure bodyId { get; set;}
+            public double structDMax { get; set;}
+            public string structureDMax { get; set;}
+            public double structDMean { get; set;}
+            public string structureMean { get; set;}
         }
 
-        private double Calculated98(Structure s, PlanningItem pi)
+        private double CalculateddMax(Structure s, PlanningItem pi)
         {
-            double d98 = (pi as PlanSetup).GetDoseAtVolume(s, 20, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose;
+            var dMax = (pi as PlanSetup).GetDVHCumulativeData(s, DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.1).MaxDose.Dose;
 
-            d98 = Math.Round(d98, 2);
-            return d98;
+            dMax = Math.Round(dMax, 2);
+            return dMax;
         }
+        private double CalculatedMeanDose(Structure s, PlanningItem pi)
+        {
+            var dMean = (pi as PlanSetup).GetDVHCumulativeData(s, DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.1).MeanDose.Dose;
 
+            dMean = Math.Round(dMean, 2);
+            return dMean;
+        }
+        private double Calculated95(Structure s, PlanningItem pi)
+        {
+            double d95 = (pi as PlanSetup).GetDoseAtVolume(s, 95, VolumePresentation.Relative, DoseValuePresentation.Absolute).Dose;
+
+            d95 = Math.Round(d95, 2);
+            return d95;
+        }
+        private double Calculated100(Structure s, PlanningItem pi, DoseValue dv)
+        {double vol100 = (pi as PlanSetup).GetVolumeAtDose(s, dv, VolumePresentation.AbsoluteCm3); //new DoseValue(dv, DoseValue.DoseUnit.cGy)
+            vol100 = Math.Round(vol100, 2);
+            return vol100;
+        }
+        private double CalculatedPTV100Vol(Structure s, PlanningItem pi, DoseValue dv)
+        {
+            double ptvVol100 = (pi as PlanSetup).GetVolumeAtDose(s, dv, VolumePresentation.AbsoluteCm3); //new DoseValue(dv, DoseValue.DoseUnit.cGy)
+            ptvVol100 = Math.Round(ptvVol100, 2);
+            return ptvVol100;
+        }
+        private double Calculated50(Structure s, PlanningItem pi, DoseValue dv)
+        {
+            double ptvVol50 = (pi as PlanSetup).GetVolumeAtDose(s, dv * .5, VolumePresentation.AbsoluteCm3); //new DoseValue(dv, DoseValue.DoseUnit.cGy)
+            ptvVol50 = Math.Round(ptvVol50, 2);
+            return ptvVol50;
+        }
         private double CalculateGEUD(Structure s, PlanningItem pi)
         {
             //collect the DVH
@@ -151,7 +260,6 @@ namespace PlanMetricExplorer
             geud = Math.Round(geud, 2);
             return geud;
         }
-
         public class geudValues
         {
             public string struc { get; set; }
